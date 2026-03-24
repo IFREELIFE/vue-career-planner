@@ -269,8 +269,9 @@ const sendMessage = async () => {
   userMessages.value.push(content)
   aiInput.value = ''
   try {
+    const jobCode = selectedJob.value.job_code || selectedJob.value.id
     const { data } = await jobAgentApi.jobChat({
-      job_code: String(selectedJob.value.id),
+      job_code: String(jobCode),
       question: content
     })
     userMessages.value.push(data?.answer || 'AI 正在处理中，请稍后查看结果。')
@@ -283,7 +284,8 @@ const applyForJob = async () => {
   if (!selectedJob.value) return
   applying.value = true
   try {
-    await jobAgentApi.applyJob(selectedJob.value.id, { grant_auth_to_enterprise: true })
+    const jobCode = selectedJob.value.job_code || selectedJob.value.id
+    await jobAgentApi.applyJob(jobCode, { grant_auth_to_enterprise: true })
     ElMessage.success('已投递并授权企业查看画像')
   } catch (error) {
     ElMessage.error('投递失败，请稍后重试')

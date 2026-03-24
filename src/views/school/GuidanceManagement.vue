@@ -380,12 +380,17 @@ const fetchAvailableSlots = async () => {
         guidanceTime: (item.available_times || []).join(', '),
         location: item.location || ''
       }))
-      availableSlots.value = data.flatMap((item: any) =>
-        (item.available_times || []).map((time: string) => ({
-          label: `${item.name} - ${time}`,
-          appointmentId: `${item.teacher_id}-${time}`
-        }))
-      )
+      availableSlots.value = data.flatMap((item: any) => {
+        const slots = item.available_slots || item.available_times || []
+        return slots.map((slot: any) => {
+          const time = typeof slot === 'string' ? slot : slot.time
+          const appointmentId = typeof slot === 'string' ? undefined : slot.appointment_id
+          return {
+            label: `${item.name} - ${time}`,
+            appointmentId: appointmentId || `${item.teacher_id}-${time}`
+          }
+        })
+      })
     }
   } catch (error) {
     ElMessage.error('获取可用辅导时间失败')

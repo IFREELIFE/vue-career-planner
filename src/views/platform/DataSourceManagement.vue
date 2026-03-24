@@ -310,10 +310,14 @@ const handleUpload = async () => {
     ElMessage.info('请选择文件上传')
     return
   }
+  if (!(file.value instanceof File)) {
+    ElMessage.error('请选择有效的 Excel 文件')
+    return
+  }
   try {
     isProcessing.value = true
     const formData = new FormData()
-    formData.append('file', file.value as File)
+    formData.append('file', file.value)
     await enterpriseApi.importJobsExcel(formData)
     uploaded.value = true
     showValidation.value = true
