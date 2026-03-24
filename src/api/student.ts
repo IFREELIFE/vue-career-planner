@@ -61,6 +61,31 @@ export const matchApi = {
   }
 }
 
+// 问卷与画像初始化
+export const studentProfileApi = {
+  // 提交初始技术能力与 MBTI
+  initProfile: (data: { tech_skills: string; mbti: string; is_guaranteed: boolean }) => {
+    return axios.post('/student/profile/init', data)
+  }
+}
+
+// 职业规划匹配
+export const careerPlanApi = {
+  matchAndPlan: (data: { target_city: string; target_job: string; force_generate: boolean }) => {
+    return axios.post('/student/career/match-and-plan', data)
+  }
+}
+
+// 职位智能体
+export const jobAgentApi = {
+  jobChat: (data: { job_code: string; question: string }) => {
+    return axios.post('/student/agent/job-chat', data)
+  },
+  applyJob: (jobId: string | number, payload: { grant_auth_to_enterprise: boolean }) => {
+    return axios.post(`/student/jobs/${jobId}/apply`, payload)
+  }
+}
+
 // 报告查看/导出
 export const reportApi = {
   // 获取报告列表

@@ -84,3 +84,18 @@ export const interviewFeedbackApi = {
     return axios.put(`/school/interview-feedbacks/${id}`, data)
   }
 }
+
+// 老师排班与辅导纪要
+export const teacherScheduleApi = {
+  // 获取可选辅导老师与时间段
+  getAvailableSlots: () => {
+    return axios.get('/school/teachers/available-slots')
+  }
+}
+
+export const appointmentEvaluationApi = {
+  // 老师提交辅导纪要与评价
+  submitEvaluation: (appointmentId: string | number, data: { tags: string[]; teacher_evaluation: string }) => {
+    return axios.post(`/school/appointments/${appointmentId}/evaluate`, data)
+  }
+}

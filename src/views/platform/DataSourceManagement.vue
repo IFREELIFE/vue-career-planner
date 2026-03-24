@@ -58,8 +58,16 @@
       <div class="validation-section">
         <div class="validation-stats">
           <el-statistic title="总记录数" :value="validationData.total" />
-          <el-statistic title="有效记录" :value="validationData.valid" prefix="<el-icon><Check /></el-icon>" />
-          <el-statistic title="重复记录" :value="validationData.duplicate" prefix="<el-icon><Warning /></el-icon>" />
+          <el-statistic title="有效记录" :value="validationData.valid">
+            <template #prefix>
+              <el-icon><Check /></el-icon>
+            </template>
+          </el-statistic>
+          <el-statistic title="重复记录" :value="validationData.duplicate">
+            <template #prefix>
+              <el-icon><Warning /></el-icon>
+            </template>
+          </el-statistic>
         </div>
         
         <div class="validation-table">
@@ -209,9 +217,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, UploadFilled, Check, Warning } from '@element-plus/icons-vue'
+import { enterpriseApi } from '../../api/company'
 
 const uploaded = ref(false)
 const showValidation = ref(false)
@@ -271,8 +280,8 @@ const importHistory = ref([
   { id: 'IMP-20240310-001', filename: '春季招聘岗位.xlsx', total: 150, success: 145, failure: 5, status: '已完成', createTime: '2024-03-10 09:15:00' }
 ])
 
-const handleFileChange = (file: any) => {
-  this.file = file.raw
+const handleFileChange = (uploadFile: any) => {
+  file.value = uploadFile.raw
   // 模拟文件解析
   isProcessing.value = true
   setTimeout(() => {
@@ -296,9 +305,24 @@ const beforeUpload = (file: File) => {
   return isExcel && isLt10M
 }
 
-const handleUpload = () => {
-  // 模拟上传
-  ElMessage.info('请选择文件上传')
+const handleUpload = async () => {
+  if (!file.value) {
+    ElMessage.info('请选择文件上传')
+    return
+  }
+  try {
+    isProcessing.value = true
+    const formData = new FormData()
+    formData.append('file', file.value as File)
+    await enterpriseApi.importJobsExcel(formData)
+    uploaded.value = true
+    showValidation.value = true
+    ElMessage.success('文件上传成功，开始数据校验')
+  } catch (error) {
+    ElMessage.error('上传失败，请稍后重试')
+  } finally {
+    isProcessing.value = false
+  }
 }
 
 const cancelValidation = () => {
@@ -347,7 +371,7 @@ const removeRow = (row: any) => {
   }
 }
 
-const overrideRow = (row: any) => {
+const overrideRow = (_row: any) => {
   ElMessage.success('已选择覆盖')
 }
 

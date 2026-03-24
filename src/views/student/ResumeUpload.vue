@@ -27,11 +27,11 @@ import { ref } from 'vue'
 
 const fileList = ref([])
 
-const handlePreview = (file) => {
+const handlePreview = (file: any) => {
   console.log(file)
 }
 
-const handleRemove = (file, fileList) => {
+const handleRemove = (file: any, fileList: any[]) => {
   console.log(file, fileList)
 }
 </script>

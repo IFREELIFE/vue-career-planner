@@ -119,3 +119,15 @@ export const careerGraphApi = {
     return axios.delete(`/platform/career/edges/${id}`)
   }
 }
+
+// LLMOps 任务监控
+export const llmOpsApi = {
+  // 获取 AI 异步任务全流程监控列表
+  getTasks: () => {
+    return axios.get('/admin/llmops/tasks')
+  },
+  // 错题本人工纠偏与精准重试
+  retryTask: (taskId: string | number, data: { correction_prompt: string; partial_retry_fields: string[] }) => {
+    return axios.post(`/admin/llmops/tasks/${taskId}/retry`, data)
+  }
+}

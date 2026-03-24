@@ -85,11 +85,15 @@
         </div>
         
         <!-- AI智能体 -->
-        <div class="ai-assistant">
-          <div class="ai-header">
-            <div class="ai-avatar">
-              <el-avatar :size="40" src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=AI%20assistant%20robot%20icon&image_size=square" />
-            </div>
+          <div class="job-actions" style="margin-top: 16px; display: flex; gap: 12px;">
+            <el-button type="primary" @click="applyForJob" :loading="applying">投递岗位并授权</el-button>
+          </div>
+
+          <div class="ai-assistant">
+            <div class="ai-header">
+              <div class="ai-avatar">
+                <el-avatar :size="40" src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=AI%20assistant%20robot%20icon&image_size=square" />
+              </div>
             <h4>AI职业顾问</h4>
           </div>
           
@@ -130,8 +134,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Search, ChatLineRound } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { jobAgentApi } from '../../api/student'
 
 // 岗位数据
 const jobs = ref([
@@ -223,6 +228,7 @@ const selectedJob = ref<any>(null)
 const aiInput = ref('')
 const userMessages = ref<string[]>([])
 const aiAnalysis = ref<any>(null)
+const applying = ref(false)
 
 // 过滤岗位
 const filteredJobs = computed(() => {
@@ -257,14 +263,32 @@ const closeDetail = () => {
 }
 
 // 发送消息
-const sendMessage = () => {
-  if (aiInput.value.trim()) {
-    userMessages.value.push(aiInput.value)
-    // 模拟AI回复
-    setTimeout(() => {
-      userMessages.value.push('这是一个关于就业和学习的回答。')
-    }, 1000)
-    aiInput.value = ''
+const sendMessage = async () => {
+  const content = aiInput.value.trim()
+  if (!content || !selectedJob.value) return
+  userMessages.value.push(content)
+  aiInput.value = ''
+  try {
+    const { data } = await jobAgentApi.jobChat({
+      job_code: String(selectedJob.value.id),
+      question: content
+    })
+    userMessages.value.push(data?.answer || 'AI 正在处理中，请稍后查看结果。')
+  } catch (error) {
+    ElMessage.error('发送失败，请稍后重试')
+  }
+}
+
+const applyForJob = async () => {
+  if (!selectedJob.value) return
+  applying.value = true
+  try {
+    await jobAgentApi.applyJob(selectedJob.value.id, { grant_auth_to_enterprise: true })
+    ElMessage.success('已投递并授权企业查看画像')
+  } catch (error) {
+    ElMessage.error('投递失败，请稍后重试')
+  } finally {
+    applying.value = false
   }
 }
 </script>

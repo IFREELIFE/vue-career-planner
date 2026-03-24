@@ -68,3 +68,23 @@ export const companyInterviewFeedbackApi = {
 export const getResumeDetail = (candidateId: string) => {
   return axios.get(`/company/resume/detail/${candidateId}`)
 }
+
+// 企业端核心接口
+export const enterpriseApi = {
+  // 批量上传岗位 Excel
+  importJobsExcel: (formData: FormData) => {
+    return axios.post('/jobs/import/excel', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+  // 手动关闭/下线岗位
+  closeJob: (jobId: string | number) => {
+    return axios.put(`/enterprise/jobs/${jobId}/close`)
+  },
+  // 企业录入真实面试反馈
+  submitInterviewFeedback: (applicationId: string | number, data: { result: string; tags: string[]; notes: string }) => {
+    return axios.post(`/enterprise/interviews/${applicationId}/feedback`, data)
+  }
+}

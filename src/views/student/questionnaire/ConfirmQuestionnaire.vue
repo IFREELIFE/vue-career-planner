@@ -15,7 +15,7 @@
       </div>
       <div class="questionnaire-actions">
         <el-button @click="handleBack">返回</el-button>
-        <el-button type="primary" @click="handleConfirm" :disabled="!agreed">确认完成</el-button>
+        <el-button type="primary" @click="handleConfirm" :disabled="!agreed" :loading="submitting">确认完成</el-button>
       </div>
     </div>
   </div>
@@ -24,20 +24,51 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { studentProfileApi } from '../../../api/student'
 
 const $router = useRouter()
 const agreed = ref(false)
+const submitting = ref(false)
 
 const handleBack = () => {
   $router.push('/student/questionnaire/mbti')
 }
 
-const handleConfirm = () => {
-  if (agreed.value) {
-    // 标记问卷完成
+const buildTechSkills = () => {
+  const skills = localStorage.getItem('skillsQuestionnaire')
+  if (!skills) return ''
+  const parsed = JSON.parse(skills)
+  const parts: string[] = []
+  if (parsed.programmingLanguages?.length) parts.push(`编程语言: ${parsed.programmingLanguages.join(', ')}`)
+  if (parsed.frontendTechnologies?.length) parts.push(`前端: ${parsed.frontendTechnologies.join(', ')}`)
+  if (parsed.backendTechnologies?.length) parts.push(`后端: ${parsed.backendTechnologies.join(', ')}`)
+  if (parsed.databases?.length) parts.push(`数据库: ${parsed.databases.join(', ')}`)
+  if (parsed.tools?.length) parts.push(`工具: ${parsed.tools.join(', ')}`)
+  if (parsed.projectExperience) parts.push(`项目经验: ${parsed.projectExperience}`)
+  if (parsed.certifications) parts.push(`证书: ${parsed.certifications}`)
+  return parts.join('；')
+}
+
+const handleConfirm = async () => {
+  if (!agreed.value) return
+  try {
+    submitting.value = true
+    const mbtiStorage = localStorage.getItem('mbtiQuestionnaire')
+    const mbtiResult = mbtiStorage ? JSON.parse(mbtiStorage).result : ''
+    const payload = {
+      tech_skills: buildTechSkills(),
+      mbti: mbtiResult,
+      is_guaranteed: true
+    }
+    await studentProfileApi.initProfile(payload)
     localStorage.setItem('questionnaireCompleted', 'true')
-    // 跳转到学生端首页
+    ElMessage.success('画像初始化信息已提交')
     $router.push('/student')
+  } catch (error) {
+    ElMessage.error('提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
 }
 </script>

@@ -8,7 +8,7 @@
           <template #header>
             <div class="card-header">
               <h3>学校老师信息</h3>
-              <el-button type="primary" size="small" @click="dialogVisible = true">
+              <el-button type="primary" size="small" @click="openAddTeacher">
                 <el-icon><Plus /></el-icon>
                 添加老师
               </el-button>
@@ -56,32 +56,42 @@
               <h3>辅导纪要登记</h3>
             </div>
           </template>
-          <el-form :model="recordForm" label-width="120px" class="record-form">
-            <el-form-item label="学生姓名">
-              <el-select v-model="recordForm.studentId" placeholder="请选择学生">
-                <el-option 
-                  v-for="student in students" 
+      <el-form :model="recordForm" label-width="120px" class="record-form">
+        <el-form-item label="学生姓名">
+          <el-select v-model="recordForm.studentId" placeholder="请选择学生">
+            <el-option 
+              v-for="student in students" 
                   :key="student.id" 
                   :label="student.name" 
                   :value="student.id"
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="辅导老师">
-              <el-select v-model="recordForm.teacherId" placeholder="请选择老师">
-                <el-option 
-                  v-for="teacher in teachers" 
-                  :key="teacher.id" 
+        <el-form-item label="辅导老师">
+          <el-select v-model="recordForm.teacherId" placeholder="请选择老师">
+            <el-option 
+              v-for="teacher in teachers" 
+              :key="teacher.id" 
                   :label="teacher.name" 
                   :value="teacher.id"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="辅导日期">
-              <el-date-picker
-                v-model="recordForm.guidanceDate"
-                type="date"
-                placeholder="选择日期"
+          </el-select>
+        </el-form-item>
+        <el-form-item label="预约时间">
+          <el-select v-model="recordForm.appointmentId" placeholder="请选择预约时间">
+            <el-option
+              v-for="slot in availableSlots"
+              :key="slot.appointmentId"
+              :label="slot.label"
+              :value="slot.appointmentId"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="辅导日期">
+          <el-date-picker
+            v-model="recordForm.guidanceDate"
+            type="date"
+            placeholder="选择日期"
                 style="width: 100%"
               />
             </el-form-item>
@@ -93,14 +103,20 @@
                 rows="4"
               />
             </el-form-item>
-            <el-form-item label="发展建议">
-              <el-input
-                v-model="recordForm.suggestions"
-                type="textarea"
-                placeholder="请输入对学生发展的建议"
-                rows="4"
-              />
-            </el-form-item>
+        <el-form-item label="发展建议">
+          <el-input
+            v-model="recordForm.suggestions"
+            type="textarea"
+            placeholder="请输入对学生发展的建议"
+            rows="4"
+          />
+        </el-form-item>
+        <el-form-item label="标签（逗号分隔）">
+          <el-input
+            v-model="recordForm.tags"
+            placeholder="例如：表达内向, 逻辑清晰"
+          />
+        </el-form-item>
             <el-form-item label="学生信息">
               <el-card v-if="selectedStudent" :body-style="{ padding: '16px' }">
                 <h4>{{ selectedStudent.name }} - {{ selectedStudent.major }}</h4>
@@ -161,40 +177,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { teacherScheduleApi, appointmentEvaluationApi } from '../../api/school'
 
 // 激活的标签页
 const activeTab = ref('teachers')
 
 // 老师列表
-const teachers = ref([
-  {
-    id: 'T001',
-    name: '王老师',
-    subject: '计算机科学与技术',
-    phone: '13800138001',
-    guidanceTime: '每周一 14:00-16:00',
-    location: '教学楼 A301'
-  },
-  {
-    id: 'T002',
-    name: '李老师',
-    subject: '软件工程',
-    phone: '13800138002',
-    guidanceTime: '每周二 10:00-12:00',
-    location: '教学楼 A302'
-  },
-  {
-    id: 'T003',
-    name: '张老师',
-    subject: '数据科学',
-    phone: '13800138003',
-    guidanceTime: '每周三 14:00-16:00',
-    location: '教学楼 A303'
-  }
-])
+const teachers = ref<any[]>([])
+const availableSlots = ref<{ label: string; appointmentId: string | number }[]>([])
 
 // 学生列表
 const students = ref([
@@ -263,7 +256,9 @@ const recordForm = ref({
   teacherId: '',
   guidanceDate: '',
   personality: '',
-  suggestions: ''
+  suggestions: '',
+  appointmentId: '',
+  tags: ''
 })
 
 // 监听学生选择，更新选中的学生信息
@@ -275,8 +270,7 @@ watch(() => recordForm.value.studentId, (newStudentId) => {
   }
 })
 
-// 添加老师
-const addTeacher = () => {
+const openAddTeacher = () => {
   isEditing.value = false
   teacherForm.value = {
     id: '',
@@ -339,15 +333,25 @@ const deleteTeacher = (id: string) => {
 }
 
 // 提交辅导纪要
-const submitRecord = () => {
-  if (!recordForm.value.studentId || !recordForm.value.teacherId || !recordForm.value.guidanceDate || !recordForm.value.personality || !recordForm.value.suggestions) {
+const submitRecord = async () => {
+  if (!recordForm.value.studentId || !recordForm.value.teacherId || !recordForm.value.guidanceDate || !recordForm.value.personality || !recordForm.value.suggestions || !recordForm.value.appointmentId) {
     ElMessage.error('请填写完整的辅导纪要信息')
     return
   }
   
-  // 模拟提交
-  ElMessage.success('辅导纪要提交成功，系统已触发后台任务')
-  resetForm()
+  try {
+    const tags = recordForm.value.tags
+      ? recordForm.value.tags.split(',').map(item => item.trim()).filter(Boolean)
+      : []
+    await appointmentEvaluationApi.submitEvaluation(recordForm.value.appointmentId, {
+      tags,
+      teacher_evaluation: recordForm.value.suggestions || recordForm.value.personality
+    })
+    ElMessage.success('辅导纪要提交成功，系统已触发向量化更新')
+    resetForm()
+  } catch (error) {
+    ElMessage.error('提交失败，请稍后重试')
+  }
 }
 
 // 重置表单
@@ -357,10 +361,40 @@ const resetForm = () => {
     teacherId: '',
     guidanceDate: '',
     personality: '',
-    suggestions: ''
+    suggestions: '',
+    appointmentId: '',
+    tags: ''
   }
   selectedStudent.value = null
 }
+
+const fetchAvailableSlots = async () => {
+  try {
+    const { data } = await teacherScheduleApi.getAvailableSlots()
+    if (Array.isArray(data)) {
+      teachers.value = data.map((item: any) => ({
+        id: item.teacher_id,
+        name: item.name,
+        subject: item.subject || '',
+        phone: item.phone || '',
+        guidanceTime: (item.available_times || []).join(', '),
+        location: item.location || ''
+      }))
+      availableSlots.value = data.flatMap((item: any) =>
+        (item.available_times || []).map((time: string) => ({
+          label: `${item.name} - ${time}`,
+          appointmentId: `${item.teacher_id}-${time}`
+        }))
+      )
+    }
+  } catch (error) {
+    ElMessage.error('获取可用辅导时间失败')
+  }
+}
+
+onMounted(() => {
+  fetchAvailableSlots()
+})
 </script>
 
 <style scoped lang="scss">

@@ -520,18 +520,20 @@ const refreshData = async () => {
     await new Promise(resolve => setTimeout(resolve, 500))
     
     lastUpdateTime.value = new Date().toLocaleString('zh-CN')
-    
-    coreMetrics.value[0].value = (12856 + Math.floor(Math.random() * 100)).toLocaleString()
-    coreMetrics.value[1].value = (3428 + Math.floor(Math.random() * 50)).toLocaleString()
-    coreMetrics.value[2].value = (94 + Math.random() * 2).toFixed(1)
+    const metrics = coreMetrics.value
+    if (metrics && metrics.length >= 3) {
+      metrics[0]!.value = (12856 + Math.floor(Math.random() * 100)).toLocaleString()
+      metrics[1]!.value = (3428 + Math.floor(Math.random() * 50)).toLocaleString()
+      metrics[2]!.value = (94 + Math.random() * 2).toFixed(1)
+    }
     
     const failureRate = 5 + Math.random() * 3
     if (failureRate > 7) {
       failureRateAlert.value = true
-      coreMetrics.value[2].isAlert = true
+      if (coreMetrics.value[2]) coreMetrics.value[2].isAlert = true
     } else {
       failureRateAlert.value = false
-      coreMetrics.value[2].isAlert = false
+      if (coreMetrics.value[2]) coreMetrics.value[2].isAlert = false
     }
     
     ElMessage.success('数据刷新成功')

@@ -32,8 +32,8 @@
             <span class="score-value">{{ matchResult.score }}%</span>
           </div>
           <div class="score-info">
-            <h4 :class="getScoreClass(matchResult.score)">{{ matchResult.evaluation }}</h4>
-            <p class="score-reason">{{ matchResult.reason }}</p>
+            <h4 :class="getScoreClass(matchResult.score)">{{ getEvaluationText(matchResult.score) }}</h4>
+            <p class="score-reason">{{ matchResult.reason || '系统已根据您的画像完成匹配分析' }}</p>
           </div>
         </div>
         
@@ -76,6 +76,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
+import { careerPlanApi } from '../../api/student'
 
 // 城市列表
 const cities = ref([
@@ -92,7 +93,13 @@ const selectedCity = ref('')
 const selectedCareer = ref('')
 const loading = ref(false)
 const generating = ref(false)
-const matchResult = ref<any>(null)
+const matchResult = ref<{
+  score: number
+  recommend: boolean
+  reason?: string
+  pdf_url?: string | null
+} | null>(null)
+const pdfUrl = ref<string | null>(null)
 
 // 推荐岗位
 const recommendedJobs = ref([
@@ -122,53 +129,64 @@ const recommendedJobs = ref([
   }
 ])
 
-// 分析匹配度
-const analyzeMatch = () => {
-  loading.value = true
-  // 模拟分析过程
-  setTimeout(() => {
-    loading.value = false
-    // 随机生成匹配度
-    const score = Math.floor(Math.random() * 40) + 60
-    let evaluation = ''
-    let reason = ''
-    
-    if (score >= 85) {
-      evaluation = '非常匹配'
-      reason = '您的技能和经验与该职业高度匹配，建议重点发展相关技能'
-    } else if (score >= 70) {
-      evaluation = '比较匹配'
-      reason = '您的技能与该职业有一定匹配度，需要进一步提升相关能力'
-    } else {
-      evaluation = '匹配度较低'
-      reason = '您的技能与该职业匹配度较低，建议考虑其他更适合的职业方向'
-    }
-    
-    matchResult.value = {
-      score,
-      evaluation,
-      reason
-    }
-  }, 1500)
+const getEvaluationText = (score: number) => {
+  if (score >= 85) {
+    return '非常匹配'
+  }
+  if (score >= 70) {
+    return '比较匹配'
+  }
+  return '匹配度较低'
 }
 
-// 坚持目标
-const insistGoal = () => {
-  ElMessage.info('已记录您的选择，将生成针对该目标的规划方案')
+const setMatchResult = (payload: { match_score: number; recommend: boolean; reason?: string; pdf_url?: string | null }) => {
+  matchResult.value = {
+    score: payload.match_score,
+    recommend: payload.recommend,
+    reason: payload.reason,
+    pdf_url: payload.pdf_url ?? null
+  }
+  pdfUrl.value = payload.pdf_url ?? null
 }
+
+// 分析匹配度
+const analyzeMatch = async (force = false) => {
+  if (!selectedCity.value || !selectedCareer.value) return
+  loading.value = true
+  try {
+    const { data } = await careerPlanApi.matchAndPlan({
+      target_city: selectedCity.value,
+      target_job: selectedCareer.value,
+      force_generate: force
+    })
+    setMatchResult(data)
+    if (!data.recommend && !force) {
+      ElMessage.warning(data.reason || '匹配度偏低，确认后可继续生成规划')
+    } else if (data.pdf_url) {
+      ElMessage.success('规划方案已生成，可下载 PDF')
+    } else {
+      ElMessage.success('匹配度分析完成')
+    }
+  } catch (error) {
+    ElMessage.error('匹配分析失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+const insistGoal = () => analyzeMatch(true)
 
 // 生成规划方案
-const generatePlan = () => {
+const generatePlan = async () => {
   generating.value = true
-  // 模拟生成过程
-  setTimeout(() => {
+  try {
+    await analyzeMatch(true)
+    if (pdfUrl.value) {
+      window.open(pdfUrl.value, '_blank')
+    }
+  } finally {
     generating.value = false
-    ElMessage.success('职业规划方案已生成，正在下载...')
-    // 模拟下载
-    setTimeout(() => {
-      ElMessage.success('规划方案已下载到本地')
-    }, 1000)
-  }, 2000)
+  }
 }
 
 // 根据分数获取样式类
