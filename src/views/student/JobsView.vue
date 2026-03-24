@@ -230,6 +230,11 @@ const userMessages = ref<string[]>([])
 const aiAnalysis = ref<any>(null)
 const applying = ref(false)
 
+const resolveJobCode = () => {
+  if (!selectedJob.value) return ''
+  return String(selectedJob.value.job_code || selectedJob.value.id)
+}
+
 // 过滤岗位
 const filteredJobs = computed(() => {
   return jobs.value.filter(job => {
@@ -269,9 +274,8 @@ const sendMessage = async () => {
   userMessages.value.push(content)
   aiInput.value = ''
   try {
-    const jobCode = selectedJob.value.job_code || selectedJob.value.id
     const { data } = await jobAgentApi.jobChat({
-      job_code: String(jobCode),
+      job_code: resolveJobCode(),
       question: content
     })
     userMessages.value.push(data?.answer || 'AI 正在处理中，请稍后查看结果。')
@@ -284,8 +288,7 @@ const applyForJob = async () => {
   if (!selectedJob.value) return
   applying.value = true
   try {
-    const jobCode = selectedJob.value.job_code || selectedJob.value.id
-    await jobAgentApi.applyJob(jobCode, { grant_auth_to_enterprise: true })
+    await jobAgentApi.applyJob(resolveJobCode(), { grant_auth_to_enterprise: true })
     ElMessage.success('已投递并授权企业查看画像')
   } catch (error) {
     ElMessage.error('投递失败，请稍后重试')

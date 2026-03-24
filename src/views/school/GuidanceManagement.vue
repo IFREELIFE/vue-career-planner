@@ -334,7 +334,9 @@ const deleteTeacher = (id: string) => {
 
 // 提交辅导纪要
 const submitRecord = async () => {
-  if (!recordForm.value.studentId || !recordForm.value.teacherId || !recordForm.value.guidanceDate || !recordForm.value.personality || !recordForm.value.suggestions || !recordForm.value.appointmentId) {
+  const requiredFields: Array<keyof typeof recordForm.value> = ['studentId', 'teacherId', 'guidanceDate', 'personality', 'suggestions', 'appointmentId']
+  const allFilled = requiredFields.every(key => Boolean(recordForm.value[key]))
+  if (!allFilled) {
     ElMessage.error('请填写完整的辅导纪要信息')
     return
   }
@@ -345,7 +347,7 @@ const submitRecord = async () => {
       : []
     await appointmentEvaluationApi.submitEvaluation(recordForm.value.appointmentId, {
       tags,
-      teacher_evaluation: recordForm.value.suggestions || recordForm.value.personality
+      teacher_evaluation: `${recordForm.value.suggestions}\n${recordForm.value.personality}`
     })
     ElMessage.success('辅导纪要提交成功，系统已触发向量化更新')
     resetForm()

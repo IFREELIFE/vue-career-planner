@@ -38,7 +38,7 @@
         </div>
         
         <div class="match-actions">
-          <el-button v-if="matchResult.score < 70" @click="insistGoal" type="warning">
+          <el-button v-if="matchResult.score < 70" @click="forceGeneratePlan" type="warning">
             坚持目标
           </el-button>
           <el-button type="primary" @click="generatePlan" :loading="generating">
@@ -174,7 +174,7 @@ const analyzeMatch = async (force = false) => {
   }
 }
 
-const insistGoal = () => analyzeMatch(true)
+const forceGeneratePlan = () => analyzeMatch(true)
 
 // 生成规划方案
 const generatePlan = async () => {
