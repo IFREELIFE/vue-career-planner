@@ -260,6 +260,7 @@ const recordForm = ref({
   appointmentId: '',
   tags: ''
 })
+const requiredRecordFields: Array<keyof typeof recordForm.value> = ['studentId', 'teacherId', 'guidanceDate', 'personality', 'suggestions', 'appointmentId']
 
 // 监听学生选择，更新选中的学生信息
 watch(() => recordForm.value.studentId, (newStudentId) => {
@@ -334,8 +335,7 @@ const deleteTeacher = (id: string) => {
 
 // 提交辅导纪要
 const submitRecord = async () => {
-  const requiredFields: Array<keyof typeof recordForm.value> = ['studentId', 'teacherId', 'guidanceDate', 'personality', 'suggestions', 'appointmentId']
-  const allFilled = requiredFields.every(key => Boolean(recordForm.value[key]))
+  const allFilled = requiredRecordFields.every(key => Boolean(recordForm.value[key]))
   if (!allFilled) {
     ElMessage.error('请填写完整的辅导纪要信息')
     return

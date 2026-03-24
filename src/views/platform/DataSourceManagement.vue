@@ -280,8 +280,8 @@ const importHistory = ref([
   { id: 'IMP-20240310-001', filename: '春季招聘岗位.xlsx', total: 150, success: 145, failure: 5, status: '已完成', createTime: '2024-03-10 09:15:00' }
 ])
 
-const handleFileChange = (uploadFile: any) => {
-  file.value = uploadFile.raw
+const handleFileChange = (uploadFileWrapper: any) => {
+  file.value = uploadFileWrapper.raw
   // 模拟文件解析
   isProcessing.value = true
   setTimeout(() => {

@@ -180,9 +180,13 @@ const forceGeneratePlan = () => analyzeMatch(true)
 const generatePlan = async () => {
   generating.value = true
   try {
-    await analyzeMatch(true)
+    if (!pdfUrl.value) {
+      await analyzeMatch(true)
+    }
     if (pdfUrl.value) {
       window.open(pdfUrl.value, '_blank')
+    } else {
+      ElMessage.info('已提交生成请求，请稍后查看')
     }
   } finally {
     generating.value = false
