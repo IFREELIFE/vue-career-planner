@@ -48,10 +48,10 @@
       </template>
       <div class="login-form">
         <div class="input-group">
-          <label class="input-label">用户名</label>
+          <label class="input-label">用户名/邮箱</label>
           <el-input 
             v-model="loginForm.username" 
-            placeholder="请输入用户名" 
+             placeholder="请输入用户名或邮箱" 
             :prefix-icon="User"
             size="large"
           />
@@ -90,6 +90,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { login } from '../../api/auth'
+import { normalizeRole, getRedirectPathByRole } from '../../constants/roles'
 
 const router = useRouter()
 const loading = ref(false)
@@ -98,22 +99,11 @@ const loginForm = reactive({
   password: ''
 })
 
-const getRedirectPath = (role: string): string => {
-  const rolePathMap: Record<string, string> = {
-    'STUDENT': '/student',
-    'SCHOOL': '/school/profile',
-    'SCHOOL_ADMIN': '/school/profile',
-    'ENTERPRISE': '/company/jobs',
-    'COMPANY_ADMIN': '/company/jobs',
-    'ADMIN': '/platform/dashboard',
-    'PLATFORM_ADMIN': '/platform/dashboard'
-  }
-  return rolePathMap[role] || '/'
-}
+const getRedirectPath = getRedirectPathByRole
 
 const handleLogin = async () => {
   if (!loginForm.username) {
-    ElMessage.error('请输入邮箱')
+    ElMessage.error('请输入用户名或邮箱')
     return
   }
   if (!loginForm.password) {
@@ -125,17 +115,33 @@ const handleLogin = async () => {
     loading.value = true
     
     const res = await login({ username: loginForm.username, password: loginForm.password })
-    const { token, role, userId } = res.data
+    if (res.code !== 200 || !res.data) {
+      ElMessage.error(res.message || '登录失败，请重试')
+      return
+    }
+
+    // 兼容新旧字段：accessToken 为新版，token 为兼容字段（TODO: 后续与后端同步后移除 token 兼容逻辑）
+    const { accessToken, refreshToken, token, role, userId } = res.data
+    const resolvedAccessToken = accessToken || token
+    const normalizedRole = normalizeRole(role)
+
+    if (!resolvedAccessToken) {
+      ElMessage.error('登录失败，未返回访问令牌')
+      return
+    }
     
-    localStorage.setItem('accessToken', token)
+    localStorage.setItem('accessToken', resolvedAccessToken)
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken)
+    }
     localStorage.setItem('user', JSON.stringify({ 
-      role: role,
+      role: normalizedRole,
       username: loginForm.username,
       userId: userId
     }))
     
-    ElMessage.success('登录成功')
-    router.push(getRedirectPath(role))
+    ElMessage.success(res.message || '登录成功')
+    router.push(getRedirectPath(normalizedRole))
   } catch (error: any) {
     console.error('Login error:', error)
     // axios interceptor already handles API error messages

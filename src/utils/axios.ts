@@ -63,15 +63,24 @@ axiosInstance.interceptors.response.use(
             refreshToken
           })
           
-          const { accessToken, refreshToken: newRefreshToken } = response.data.data
-          localStorage.setItem('accessToken', accessToken)
-          localStorage.setItem('refreshToken', newRefreshToken)
-          
-          onRefreshed(accessToken)
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`
+          const { accessToken, token, refreshToken: newRefreshToken } = response.data.data
+          const resolvedAccessToken = accessToken || token
+
+          if (resolvedAccessToken) {
+            localStorage.setItem('accessToken', resolvedAccessToken)
+            if (newRefreshToken) {
+              localStorage.setItem('refreshToken', newRefreshToken)
+            }
+            
+            onRefreshed(resolvedAccessToken)
+            originalRequest.headers.Authorization = `Bearer ${resolvedAccessToken}`
+          } else {
+            throw new Error('Failed to refresh token: missing new access token. Please log in again.')
+          }
           
           return axiosInstance(originalRequest)
         } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
           localStorage.removeItem('user')

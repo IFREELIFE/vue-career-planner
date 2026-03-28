@@ -6,7 +6,10 @@ interface LoginRequest {
 }
 
 interface LoginData {
-  token: string
+  accessToken?: string
+  refreshToken?: string
+  expiresIn?: number
+  token?: string
   role: string
   userId: number
 }
@@ -24,12 +27,12 @@ interface RefreshRequest {
   refreshToken: string
 }
 
-interface RefreshData {
-  accessToken: string
-  refreshToken: string
-  expiresIn: number
-  role: string
-}
+// Refresh endpoint generally mirrors login response, but userId may be omitted
+/**
+ * Token payload returned by refresh endpoint.
+ * It mirrors LoginData but userId is optional because some backends omit it on refresh.
+ */
+type RefreshData = Omit<LoginData, 'userId'> & { userId?: number }
 
 interface ChangePasswordRequest {
   oldPassword: string
@@ -44,7 +47,7 @@ interface Result<T> {
 
 export const authApi = {
   login: (data: LoginRequest): Promise<Result<LoginData>> => {
-    return axios.post('/auth/login', { email: data.username, password: data.password })
+    return axios.post('/auth/login', { username: data.username, password: data.password })
   },
   
   register: (data: RegisterRequest): Promise<Result<LoginData>> => {
